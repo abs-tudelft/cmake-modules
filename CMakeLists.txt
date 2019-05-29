@@ -1,0 +1,14 @@
+set(ABS_MODULES "CompileUnits")
+
+foreach(ABS_MODULE IN LISTS ABS_MODULES)
+	string(TOUPPER ${ABS_MODULE} ABS_MODULE_UP)
+	set(ABS_OPTION "ABS_${ABS_MODULE_UP}")
+	option(${ABS_OPTION} "Include the ${ABS_MODULE} module" ON)
+	if(${ABS_OPTION})
+		set(CMAKE_MODULE_PATH 
+			${CMAKE_MODULE_PATH}
+			${CMAKE_CURRENT_LIST_DIR}/${ABS_MODULE}
+			PARENT_SCOPE
+		)
+	endif()
+endforeach()
