@@ -1,0 +1,212 @@
+include(CMakeParseArguments)
+
+# TODO: option
+include(FetchContent)
+include(GoogleTest)
+enable_testing()
+FetchContent_Declare(googletest
+  GIT_REPOSITORY  https://github.com/google/googletest.git
+  GIT_TAG         master
+)
+FetchContent_GetProperties(googletest)
+if(NOT googletest_POPULATED)
+  FetchContent_Populate(googletest)
+  set(CMAKE_CXX_STANDARD 11)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(INSTALL_GTEST OFF CACHE BOOL "")
+  add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
+  set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES CXX_CLANG_TIDY "")
+endif()
+
+define_property(GLOBAL PROPERTY FCM BRIEF_DOCS "." FULL_DOCS ".")
+
+function(add_compile_unit)
+  set(options
+  )
+  set(single
+    NAME  # Target name
+    TYPE  # Compile unit type: SHARED | OBJECT | EXECUTABLE | TESTS
+  )
+  set(multi
+    SRCS  # List of sources
+    TSTS  # List of tests
+    DEPS  # List of dependencies
+  )
+  cmake_parse_arguments(X "${options}" "${single}" "${multi}" ${ARGN})
+
+  # Default behavior is OBJECT_LIBRARY
+  if(NOT X_TYPE)
+    set(X_TYPE OBJECT)
+  endif()
+
+  # test shortcut
+  if (X_TSTS)
+    foreach(TST ${X_TSTS})
+      get_filename_component(X_TST_NAME ${TST} NAME_WE)
+      set(X_TST_DEP "")
+      if(NOT ${X_TYPE} MATCHES EXECUTABLE)
+        list(APPEND X_TST_DEP ${X_NAME})
+      endif()
+      add_compile_unit(
+        NAME ${X_NAME}::${X_TST_NAME}
+        TYPE TESTS
+        SRCS
+          ${TST}
+        DEPS
+          gmock_main
+          ${X_DEPS}
+          ${X_TST_DEP}
+      )
+    endforeach()
+  endif()
+
+  # Target names use underscores, an alias with the provided name is added
+  string(REPLACE "::" "_" X_NAME ${X_NAME})
+
+  set_property(GLOBAL APPEND PROPERTY FCM FCM_${X_NAME})
+
+  # single
+  set_property(GLOBAL PROPERTY FCM_${X_NAME}_NAME ${X_NAME})
+  set_property(GLOBAL PROPERTY FCM_${X_NAME}_TYPE ${X_TYPE})
+  # multi
+  set_property(GLOBAL PROPERTY FCM_${X_NAME}_SRCS ${X_SRCS})
+  set_property(GLOBAL PROPERTY FCM_${X_NAME}_DEPS ${X_DEPS})
+  # metadata
+  set_property(GLOBAL PROPERTY FCM_${X_NAME}_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+  # set_global(${X_NAME} BIN_DIR ${CMAKE_INSTALL_BINDIR})
+
+endfunction()
+
+function(compile_units)
+  get_property(FCM GLOBAL PROPERTY FCM)
+  set(FCM_COUNT)
+  while(FCM)
+    if (FCM_COUNT EQUAL 1000)
+      message(FATAL_ERROR "Recursion limit. You may have a circular dependency.")
+    endif()
+    set(FCM_NEXT "")
+    foreach(LIB ${FCM})
+      set(X_OBJ_SRCS "")
+      set(X_SKIP NO)
+      get_property(X_DEPS GLOBAL PROPERTY ${LIB}_DEPS)
+      if (X_DEPS)
+        foreach(X IN LISTS X_DEPS)
+          if (NOT TARGET ${X})
+            string(REPLACE "::" "_" X_NAME ${X})
+            get_property(X_NAME_EXISTS GLOBAL PROPERTY FCM_${X_NAME}_NAME)
+            if (NOT X_NAME_EXISTS)
+              get_property(NAME GLOBAL PROPERTY ${LIB}_NAME)
+              string(REPLACE "_" "::" TARGET_NAME ${NAME})
+              message(FATAL_ERROR "Dependency ${X} for ${TARGET_NAME} does not exist")
+            endif()
+            list(APPEND FCM_NEXT ${LIB})
+            set(X_SKIP YES)
+            break()
+          endif()
+          get_target_property(TYPE ${X} TYPE)
+          if (${TYPE} MATCHES OBJECT_LIBRARY)
+            list(APPEND X_OBJ_SRCS $<TARGET_OBJECTS:${X}>)
+            get_target_property(X_OBJ_DEPS ${X} OBJ_DEPS)
+            if (X_OBJ_DEPS)
+              list(APPEND X_OBJ_SRCS ${X_OBJ_DEPS})
+            endif()
+          else()
+            if (${TYPE} MATCHES EXECUTABLE)
+              list(REMOVE_ITEM X_DEPS ${X})
+            endif()
+          endif()
+        endforeach()
+      endif()
+      if (X_SKIP)
+        continue()
+      endif()
+
+      # single
+      get_property(NAME GLOBAL PROPERTY ${LIB}_NAME)
+      get_property(TYPE GLOBAL PROPERTY ${LIB}_TYPE)
+      # multi
+      get_property(SRCS GLOBAL PROPERTY ${LIB}_SRCS)
+      # metadata
+      get_property(SRC_DIR GLOBAL PROPERTY ${LIB}_SRC_DIR)
+
+      string(REPLACE "_" "::" TARGET_NAME ${NAME})
+
+      if (SRCS)
+        list(TRANSFORM SRCS PREPEND ${SRC_DIR}/)
+      endif()
+
+      if (${TYPE} MATCHES OBJECT OR ${TYPE} MATCHES SHARED)
+        add_library(
+          ${NAME}
+          ${TYPE}
+          ${SRCS}
+          ${X_OBJ_SRCS}
+        )
+        add_library(
+          ${TARGET_NAME}
+          ALIAS
+          ${NAME}
+        )
+        target_include_directories(
+          ${NAME}
+          PUBLIC
+            $<BUILD_INTERFACE:${SRC_DIR}/include>
+            $<INSTALL_INTERFACE:include>
+          PRIVATE
+            ${SRC_DIR}/include
+            ${SRC_DIR}/src
+        )
+        if(EXISTS ${SRC_DIR}/include/)
+          install(
+            DIRECTORY ${SRC_DIR}/include/
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+          )
+        endif()
+        if(${TYPE} MATCHES SHARED)
+          # shared libraries are installed
+          install(
+            TARGETS ${NAME}
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          )
+        endif()
+        if(${TYPE} MATCHES OBJECT)
+          # Use position independent code for object libraries
+          set_property(TARGET ${NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+        endif()
+      endif()
+
+      if (${TYPE} MATCHES EXECUTABLE OR ${TYPE} MATCHES TESTS)
+        add_executable(
+          ${NAME}
+          ${SRCS}
+          ${X_OBJ_SRCS}
+        )
+        if (${TYPE} MATCHES EXECUTABLE)
+          install(
+            TARGETS ${NAME}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          )
+        endif()
+        if (${TYPE} MATCHES TESTS)
+          set(X_TEST_PREFIX ${TARGET_NAME})
+          string(APPEND X_TEST_PREFIX "::")
+          list(APPEND X_DEPS gmock_main)
+          gtest_discover_tests(${NAME} TEST_PREFIX ${X_TEST_PREFIX})
+        endif()
+      endif()
+
+      set_target_properties(${NAME} PROPERTIES OBJ_DEPS "${X_OBJ_SRCS}")
+
+      target_link_libraries(
+        ${NAME}
+        ${X_DEPS}
+      )
+
+    endforeach()
+
+    set(FCM ${FCM_NEXT})
+    MATH(EXPR FCM_COUNT "${FCM_COUNT}+1")
+
+  endwhile()
+endfunction()
