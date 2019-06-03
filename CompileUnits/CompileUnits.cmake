@@ -142,7 +142,7 @@ function(compile_units)
           ${SRCS}
           ${X_OBJ_SRCS}
         )
-        if(NOT ${TARGET_NAME} EQUAL ${NAME})
+        if(NOT TARGET_NAME STREQUAL NAME)
           add_library(
             ${TARGET_NAME}
             ALIAS ${NAME}
