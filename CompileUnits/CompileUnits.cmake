@@ -151,11 +151,9 @@ function(compile_units)
         target_include_directories(
           ${NAME}
           PUBLIC
+            $<BUILD_INTERFACE:${SRC_DIR}/src>
             $<BUILD_INTERFACE:${SRC_DIR}/include>
             $<INSTALL_INTERFACE:include>
-          PRIVATE
-            ${SRC_DIR}/include
-            ${SRC_DIR}/src
         )
         if(EXISTS ${SRC_DIR}/include/)
           install(
