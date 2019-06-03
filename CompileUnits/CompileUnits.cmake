@@ -142,11 +142,12 @@ function(compile_units)
           ${SRCS}
           ${X_OBJ_SRCS}
         )
-        add_library(
-          ${TARGET_NAME}
-          ALIAS
-          ${NAME}
-        )
+        if(NOT ${TARGET_NAME} EQUAL ${NAME})
+          add_library(
+            ${TARGET_NAME}
+            ALIAS ${NAME}
+          )
+        endif()
         target_include_directories(
           ${NAME}
           PUBLIC
