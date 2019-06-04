@@ -11,11 +11,9 @@ FetchContent_Declare(googletest
 FetchContent_GetProperties(googletest)
 if(NOT googletest_POPULATED)
   FetchContent_Populate(googletest)
-  set(CMAKE_CXX_STANDARD 11)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(INSTALL_GTEST OFF CACHE BOOL "")
   add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
-  set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES CXX_CLANG_TIDY "")
+  set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES CXX_CLANG_TIDY "" CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
 endif()
 
 define_property(GLOBAL PROPERTY FCM BRIEF_DOCS "." FULL_DOCS ".")
@@ -153,6 +151,7 @@ function(compile_units)
           PUBLIC
             $<BUILD_INTERFACE:${SRC_DIR}/src>
             $<BUILD_INTERFACE:${SRC_DIR}/include>
+            $<BUILD_INTERFACE:${SRC_DIR}/test>
             $<INSTALL_INTERFACE:include>
         )
         if(EXISTS ${SRC_DIR}/include/)
