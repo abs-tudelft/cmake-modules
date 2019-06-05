@@ -29,6 +29,7 @@ function(add_compile_unit)
     SRCS  # List of sources
     TSTS  # List of tests
     DEPS  # List of dependencies
+    PRPS  # List of properties <prop1> <value1> <prop2> <value2>
   )
   cmake_parse_arguments(X "${options}" "${single}" "${multi}" ${ARGN})
 
@@ -54,6 +55,8 @@ function(add_compile_unit)
           gmock_main
           ${X_DEPS}
           ${X_TST_DEP}
+        PRPS
+          ${X_PRPS}
       )
     endforeach()
   endif()
@@ -69,6 +72,7 @@ function(add_compile_unit)
   # multi
   set_property(GLOBAL PROPERTY FCM_${X_NAME}_SRCS ${X_SRCS})
   set_property(GLOBAL PROPERTY FCM_${X_NAME}_DEPS ${X_DEPS})
+  set_property(GLOBAL PROPERTY FCM_${X_NAME}_PRPS ${X_PRPS})
   # metadata
   set_property(GLOBAL PROPERTY FCM_${X_NAME}_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
   # set_global(${X_NAME} BIN_DIR ${CMAKE_INSTALL_BINDIR})
@@ -124,6 +128,7 @@ function(compile_units)
       get_property(TYPE GLOBAL PROPERTY ${LIB}_TYPE)
       # multi
       get_property(SRCS GLOBAL PROPERTY ${LIB}_SRCS)
+      get_property(PRPS GLOBAL PROPERTY ${LIB}_PRPS)
       # metadata
       get_property(SRC_DIR GLOBAL PROPERTY ${LIB}_SRC_DIR)
 
@@ -195,6 +200,10 @@ function(compile_units)
       endif()
 
       set_target_properties(${NAME} PROPERTIES OBJ_DEPS "${X_OBJ_SRCS}")
+      
+      if(PRPS)
+        set_target_properties(${NAME} PROPERTIES ${PRPS})
+      endif()
 
       target_link_libraries(
         ${NAME}
