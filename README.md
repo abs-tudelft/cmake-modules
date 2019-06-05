@@ -1,5 +1,7 @@
 # cmake-modules
 
+[![Build Status](https://dev.azure.com/abs-tudelft/cmake-modules/_apis/build/status/abs-tudelft.cmake-modules?branchName=master)](https://dev.azure.com/abs-tudelft/cmake-modules/_build/latest?definitionId=1&branchName=master)
+
 This is a collection of [CMake](https://cmake.org/) modules used and maintained by the [Accelerated Big Data Systems group](https://github.com/abs-tudelft).
 
 ## Modules
