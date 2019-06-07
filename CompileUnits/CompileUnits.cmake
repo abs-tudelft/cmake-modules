@@ -16,7 +16,7 @@ if(NOT googletest_POPULATED)
   set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES CXX_CLANG_TIDY "" CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
 endif()
 
-option(BUILD_TESTS "Build tests" ON)
+option(BUILD_TESTS "Build tests" OFF)
 
 define_property(GLOBAL PROPERTY FCM BRIEF_DOCS "." FULL_DOCS ".")
 
