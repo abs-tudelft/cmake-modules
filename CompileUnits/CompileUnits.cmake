@@ -16,10 +16,13 @@ if(NOT googletest_POPULATED)
   set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES CXX_CLANG_TIDY "" CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
 endif()
 
+option(BUILD_TESTS "Build tests" ON)
+
 define_property(GLOBAL PROPERTY FCM BRIEF_DOCS "." FULL_DOCS ".")
 
 function(add_compile_unit)
   set(options
+    OPT   # Mark unit as optional. Ignored for tests.
   )
   set(single
     NAME  # Target name
@@ -64,6 +67,16 @@ function(add_compile_unit)
   # Target names use underscores, an alias with the provided name is added
   string(REPLACE "::" "_" X_NAME ${X_NAME})
 
+  # Create compile unit option
+  string(TOUPPER "${X_NAME}" X_OPTION_NAME)
+  if(NOT X_TYPE MATCHES TESTS)
+    if(X_OPT)
+      option(BUILD_${X_OPTION_NAME} "Build ${X_NAME}" OFF)
+    else()
+      option(BUILD_${X_OPTION_NAME} "Build ${X_NAME}" ON)
+    endif()
+  endif()
+  
   set_property(GLOBAL APPEND PROPERTY FCM FCM_${X_NAME})
 
   # single
@@ -80,14 +93,33 @@ function(add_compile_unit)
 endfunction()
 
 function(compile_units)
+  # Make a copy of the global list
   get_property(FCM GLOBAL PROPERTY FCM)
+  get_property(FCM_COPY GLOBAL PROPERTY FCM)
+  
+  # Drop all units disabled by option
+  foreach(LIB ${FCM_COPY})
+    get_property(X_TYPE GLOBAL PROPERTY ${LIB}_TYPE)
+    if(NOT X_TYPE MATCHES TESTS)
+      get_property(X_NAME GLOBAL PROPERTY ${LIB}_NAME)
+      string(TOUPPER "${X_NAME}" X_OPTION_NAME)
+      if(NOT BUILD_${X_OPTION_NAME})
+        list(REMOVE_ITEM FCM_COPY ${LIB})
+      endif()
+    else()
+      if(NOT BUILD_TESTS)
+        list(REMOVE_ITEM FCM_COPY ${LIB})
+      endif()
+    endif()
+  endforeach()
   set(FCM_COUNT)
-  while(FCM)
+  while(FCM_COPY)
     if (FCM_COUNT EQUAL 1000)
       message(FATAL_ERROR "Recursion limit. You may have a circular dependency.")
     endif()
     set(FCM_NEXT)
-    foreach(LIB ${FCM})
+    foreach(LIB ${FCM_COPY})
+      get_property(X_NAME GLOBAL PROPERTY ${LIB}_NAME)
       set(X_OBJ_SRCS)
       set(X_SKIP NO)
       get_property(X_DEPS GLOBAL PROPERTY ${LIB}_DEPS)
@@ -103,9 +135,21 @@ function(compile_units)
               endif()
               get_property(NAME GLOBAL PROPERTY ${LIB}_NAME)
               string(REPLACE "_" "::" TARGET_NAME ${NAME})
-              message(FATAL_ERROR "Dependency ${X} for ${TARGET_NAME} does not exist")
+              message(FATAL_ERROR "Dependency ${X} for ${TARGET_NAME} does not exist. No such target, compilation unit or library.")
+            else()
+              list(FIND FCM_COPY FCM_${X_NAME} FCM_X_TODO)
+              if(FCM_X_TODO EQUAL -1)
+                list(FIND FCM_NEXT FCM_${X_NAME} FCM_X_ADDED)
+                if(FCM_X_ADDED EQUAL -1)
+                  list(APPEND FCM_NEXT FCM_${X_NAME})
+                  set(X_SKIP YES)
+                endif()
+              endif()
             endif()
-            list(APPEND FCM_NEXT ${LIB})
+            list(FIND FCM_NEXT ${LIB} FCM_X_ADDED)
+            if(FCM_X_ADDED EQUAL -1)
+              list(APPEND FCM_NEXT ${LIB})
+            endif()
             set(X_SKIP YES)
             break()
           endif()
@@ -184,6 +228,9 @@ function(compile_units)
       endif()
 
       if (${TYPE} MATCHES EXECUTABLE OR ${TYPE} MATCHES TESTS)
+        if(TYPE MATCHES TESTS AND NOT BUILD_TESTS)
+          continue()
+        endif()
         add_executable(
           ${NAME}
           ${SRCS}
@@ -216,7 +263,7 @@ function(compile_units)
 
     endforeach()
 
-    set(FCM ${FCM_NEXT})
+    set(FCM_COPY ${FCM_NEXT})
     MATH(EXPR FCM_COUNT "${FCM_COUNT}+1")
 
   endwhile()
