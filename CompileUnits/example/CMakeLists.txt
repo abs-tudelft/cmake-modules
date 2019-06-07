@@ -21,7 +21,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/..)
 include(CompileUnits)
 
 # Enable tests
-SET(BUILD_TESTS ON CACHE BOOL "")
+set(BUILD_TESTS ON CACHE BOOL "" FORCE)
 
 # Add all directories with `CMakeLists.txt` files which add compile units.
 add_subdirectory(src)
