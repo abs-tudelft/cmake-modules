@@ -128,7 +128,7 @@ function(compile_units)
         foreach(X IN LISTS X_DEPS)
           if (NOT TARGET ${X})
             string(REPLACE "::" "_" X_NAME ${X})
-            get_property(X_NAME_EXISTS GLOBAL PROPERTY FCM_${X_NAME}_NAME) 
+            get_property(X_NAME_EXISTS GLOBAL PROPERTY FCM_${X_NAME}_NAME)
             if (NOT X_NAME_EXISTS)
               find_library(X_LIB ${X})
               if(X_LIB)
@@ -269,4 +269,7 @@ function(compile_units)
     MATH(EXPR FCM_COUNT "${FCM_COUNT}+1")
 
   endwhile()
+
+  set_property(GLOBAL PROPERTY FCM)
+
 endfunction()
