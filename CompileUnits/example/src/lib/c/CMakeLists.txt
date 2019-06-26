@@ -7,4 +7,5 @@ add_compile_unit(
   DEPS
   	example::lib::a
   	example::lib::b
+    example::lib::interface
 )

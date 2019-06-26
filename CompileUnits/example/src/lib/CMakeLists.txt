@@ -1,6 +1,7 @@
 add_subdirectory(a)
 add_subdirectory(b)
 add_subdirectory(c)
+add_subdirectory(interface)
 
 add_compile_unit(
   NAME example::lib

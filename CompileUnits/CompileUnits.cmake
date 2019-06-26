@@ -26,7 +26,7 @@ function(add_compile_unit)
   )
   set(single
     NAME  # Target name
-    TYPE  # Compile unit type: SHARED | OBJECT | EXECUTABLE | TESTS
+    TYPE  # Compile unit type: SHARED | OBJECT | EXECUTABLE | TESTS | INTERFACE
   )
   set(multi
     SRCS  # List of sources
@@ -188,7 +188,7 @@ function(compile_units)
         list(TRANSFORM SRCS PREPEND ${SRC_DIR}/)
       endif()
 
-      if (${TYPE} MATCHES OBJECT OR ${TYPE} MATCHES SHARED)
+      if (${TYPE} MATCHES OBJECT OR ${TYPE} MATCHES SHARED OR ${TYPE} MATCHES INTERFACE)
         add_library(
           ${NAME}
           ${TYPE}
@@ -201,14 +201,23 @@ function(compile_units)
             ALIAS ${NAME}
           )
         endif()
-        target_include_directories(
-          ${NAME}
-          PUBLIC
-            $<BUILD_INTERFACE:${SRC_DIR}/src>
-            $<BUILD_INTERFACE:${SRC_DIR}/include>
-            $<BUILD_INTERFACE:${SRC_DIR}/test>
-            $<INSTALL_INTERFACE:include>
-        )
+        if (${TYPE} MATCHES INTERFACE)
+          target_include_directories(
+            ${NAME}
+            INTERFACE
+              $<BUILD_INTERFACE:${SRC_DIR}/include>
+              $<INSTALL_INTERFACE:include>
+          )
+        else()
+          target_include_directories(
+            ${NAME}
+            PUBLIC
+              $<BUILD_INTERFACE:${SRC_DIR}/src>
+              $<BUILD_INTERFACE:${SRC_DIR}/include>
+              $<BUILD_INTERFACE:${SRC_DIR}/test>
+              $<INSTALL_INTERFACE:include>
+          )
+        endif()
         if(EXISTS ${SRC_DIR}/include/)
           install(
             DIRECTORY ${SRC_DIR}/include/
@@ -252,7 +261,9 @@ function(compile_units)
         endif()
       endif()
 
-      set_target_properties(${NAME} PROPERTIES OBJ_DEPS "${X_OBJ_SRCS}")
+      if(X_OBJ_SRCS)
+        set_target_properties(${NAME} PROPERTIES OBJ_DEPS "${X_OBJ_SRCS}")
+      endif()
       
       if(PRPS)
         set_target_properties(${NAME} PROPERTIES ${PRPS})

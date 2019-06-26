@@ -17,4 +17,5 @@ add_compile_unit(
   SRCS
     test/integration.cpp
   DEPS
+    example::lib::interface
 )
