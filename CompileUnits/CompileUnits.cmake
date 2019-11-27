@@ -76,7 +76,7 @@ function(add_compile_unit)
       option(BUILD_${X_OPTION_NAME} "Build ${X_NAME}" ON)
     endif()
   endif()
-  
+
   set_property(GLOBAL APPEND PROPERTY FCM FCM_${X_NAME})
 
   # single
@@ -96,7 +96,7 @@ function(compile_units)
   # Make a copy of the global list
   get_property(FCM GLOBAL PROPERTY FCM)
   get_property(FCM_COPY GLOBAL PROPERTY FCM)
-  
+
   # Drop all units disabled by option
   foreach(LIB ${FCM_COPY})
     get_property(X_TYPE GLOBAL PROPERTY ${LIB}_TYPE)
@@ -168,7 +168,7 @@ function(compile_units)
           endif()
         endforeach()
       endif()
-      
+
       if (X_SKIP)
         continue()
       endif()
@@ -185,7 +185,16 @@ function(compile_units)
       string(REPLACE "_" "::" TARGET_NAME ${NAME})
 
       if (SRCS)
-        list(TRANSFORM SRCS PREPEND ${SRC_DIR}/)
+        set(ABS_SRCS)
+        foreach(SRC ${SRCS})
+          if(IS_ABSOLUTE ${SRC})
+            list(APPEND ABS_SRCS ${SRC})
+          else()
+            get_filename_component(ABS_PATH ${SRC_DIR}/${SRC} ABSOLUTE)
+            list(APPEND ABS_SRCS ${ABS_PATH})
+          endif()
+        endforeach()
+        set(SRCS ${ABS_SRCS})
       endif()
 
       if (${TYPE} MATCHES OBJECT OR ${TYPE} MATCHES SHARED OR ${TYPE} MATCHES INTERFACE)
@@ -264,7 +273,7 @@ function(compile_units)
       if(X_OBJ_SRCS)
         set_target_properties(${NAME} PROPERTIES OBJ_DEPS "${X_OBJ_SRCS}")
       endif()
-      
+
       if(PRPS)
         set_target_properties(${NAME} PROPERTIES ${PRPS})
       endif()
