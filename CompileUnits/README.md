@@ -24,26 +24,34 @@ All compilation units have a unique name and type, and optionally some sources, 
 
 There are two library types, `SHARED` and `OBJECT` (which is the default if no type is set using the `add_compile_unit` function). `OBJECT` libraries map to CMake [object libraries](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#object-libraries). `SHARED` libraries map to CMake [shared libraries](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#normal-libraries). Use the `OBJECT` type if you want the library source to compile into targets depending on it, and use the `SHARED` type if you want an install target where dependent targets link to.
 
-| Type 		| Description 											| Install 				|
-|-----------|-------------------------------------------------------|-----------------------|
-| `OBJECT` 	| Compiled into dependent targets. 						| No install target 	|
-| `SHARED` 	| Builds shared library. Linked to by dependent targets.| `CMAKE_INSTALL_LIBDIR`|
+| Type     | Description                                            | Install                |
+| -------- | ------------------------------------------------------ | ---------------------- |
+| `OBJECT` | Compiled into dependent targets.                       | No install target      |
+| `SHARED` | Builds shared library. Linked to by dependent targets. | `CMAKE_INSTALL_LIBDIR` |
 
 ### Binaries
 
 The `EXECUTABLE` compilation unit type is used to generate binary build and install targets. It maps to CMake [binary executables](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#binary-executables). Tests defined for this compilation unit only inherit dependencies.
 
-| Type 			| Description 				| Install 					|
-|---------------|---------------------------|---------------------------|
-| `EXECTUABLE`	| Builds executable binary.	| `CMAKE_INSTALL_BINDIR`	|
+| Type         | Description               | Install                |
+| ------------ | ------------------------- | ---------------------- |
+| `EXECTUABLE` | Builds executable binary. | `CMAKE_INSTALL_BINDIR` |
 
 ### Tests
 
 The `TESTS` compilation unit type is used to build test targets, Use this type if you need additional dependencies, e.g. for integration tests. When including test source files for other types, they generate `TESTS` compilation units which inherit the dependencies of the compilation unit. These compilation units map to CMake [binary executables](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#binary-executables) without an installation target.
 
-| Type 		| Description 			| Install 				|
-|-----------|-----------------------|-----------------------|
-| `TESTS`	| Builds test targets.	| No install target 	|
+| Type    | Description          | Install           |
+| ------- | -------------------- | ----------------- |
+| `TESTS` | Builds test targets. | No install target |
+
+### Benchmarks
+
+The `BENCHMARK` compilation unit type is used to build benchmark targets, Use this type if you need additional dependencies, e.g. for integration benchmarks. When including benchmark source files for other types, they generate `BENCHMARK` compilation units which inherit the dependencies of the compilation unit. These compilation units map to CMake [binary executables](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#binary-executables) without an installation target.
+
+| Type        | Description               | Install           |
+| ----------- | ------------------------- | ----------------- |
+| `BENCHMARK` | Builds benchmark targets. | No install target |
 
 ### Includes
 
@@ -64,6 +72,8 @@ whale/
   		whale.hpp
   test/
   	unit.cpp
+  benches/
+    bench.cpp
   CMakeLists.txt
 ```
 
@@ -88,6 +98,8 @@ add_compile_unit(
     src/util.cpp
   TSTS
     test/unit.cpp
+  BNCH
+    benches/bench.cpp
 )
 
 compile_units()
@@ -110,11 +122,14 @@ whale/
         whale.cpp
       test/
         unit.cpp
+      benches/
+        bench.cpp
       CMakeLists.txt
   CMakeLists.txt
 ```
 
 `whale/CMakeLists.txt`
+
 ```cmake
 cmake_minimum_required(VERSION 3.14)
 project(VERSION 0.1.0 DESCRIPTION "whale lib" LANGUAGES CXX)
@@ -134,6 +149,7 @@ compile_units()
 ```
 
 `whale/src/bin/CMakeLists.txt`
+
 ```cmake
 add_compile_unit(
   NAME whale::app
@@ -146,6 +162,7 @@ add_compile_unit(
 ```
 
 `whale/src/lib/CMakeLists.txt`
+
 ```cmake
 add_compile_unit(
   NAME whale::lib
@@ -154,5 +171,7 @@ add_compile_unit(
     src/whale.cpp
   TSTS
     test/unit.cpp
+  BNCH
+    benches/bench.cpp
 )
 ```

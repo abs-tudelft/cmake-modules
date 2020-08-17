@@ -18,6 +18,19 @@ endif()
 
 option(BUILD_TESTS "Build tests" OFF)
 
+FetchContent_Declare(benchmark
+  GIT_REPOSITORY  https://github.com/google/benchmark.git
+  GIT_TAG         master
+)
+FetchContent_GetProperties(benchmark)
+if(NOT benchmark_POPULATED)
+  FetchContent_Populate(benchmark)
+  set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "")
+  set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "")
+  add_subdirectory(${benchmark_SOURCE_DIR} ${benchmark_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+option(BUILD_BENCHMARKS "Build benchmarks" OFF)
+
 define_property(GLOBAL PROPERTY FCM BRIEF_DOCS "." FULL_DOCS ".")
 
 function(add_compile_unit)
@@ -26,13 +39,14 @@ function(add_compile_unit)
   )
   set(single
     NAME  # Target name
-    TYPE  # Compile unit type: SHARED | OBJECT | EXECUTABLE | TESTS | INTERFACE
+    TYPE  # Compile unit type: SHARED | OBJECT | EXECUTABLE | TESTS | INTERFACE | BENCHMARK
   )
   set(multi
     SRCS  # List of sources
     TSTS  # List of tests
     DEPS  # List of dependencies
     PRPS  # List of properties <prop1> <value1> <prop2> <value2>
+    BNCH  # List of benchmarks
   )
   cmake_parse_arguments(X "${options}" "${single}" "${multi}" ${ARGN})
 
@@ -58,6 +72,29 @@ function(add_compile_unit)
           gmock_main
           ${X_DEPS}
           ${X_TST_DEP}
+        PRPS
+          ${X_PRPS}
+      )
+    endforeach()
+  endif()
+
+  # benchmark shortcut
+  if (X_BNCH)
+    foreach(BNCH ${X_BNCH})
+      get_filename_component(X_BNCH_NAME ${BNCH} NAME_WE)
+      set(X_BNCH_DEP)
+      if(NOT ${X_TYPE} MATCHES EXECUTABLE)
+        list(APPEND X_BNCH_DEP ${X_NAME})
+      endif()
+      add_compile_unit(
+        NAME ${X_NAME}::${X_BNCH_NAME}
+        TYPE BENCHMARK
+        SRCS
+          ${BNCH}
+        DEPS
+          benchmark_main
+          ${X_DEPS}
+          ${X_BNCH_DEP}
         PRPS
           ${X_PRPS}
       )
@@ -100,14 +137,17 @@ function(compile_units)
   # Drop all units disabled by option
   foreach(LIB ${FCM_COPY})
     get_property(X_TYPE GLOBAL PROPERTY ${LIB}_TYPE)
-    if(NOT X_TYPE MATCHES TESTS)
+    if(NOT X_TYPE MATCHES TESTS AND NOT X_TYPE MATCHES BENCHMARK)
       get_property(X_NAME GLOBAL PROPERTY ${LIB}_NAME)
       string(TOUPPER "${X_NAME}" X_OPTION_NAME)
       if(NOT BUILD_${X_OPTION_NAME})
         list(REMOVE_ITEM FCM_COPY ${LIB})
       endif()
     else()
-      if(NOT BUILD_TESTS)
+      if(X_TYPE MATCHES TESTS AND NOT BUILD_TESTS)
+        list(REMOVE_ITEM FCM_COPY ${LIB})
+      endif()
+      if(X_TYPE MATCHES BENCHMARK AND NOT BUILD_BENCHMARKS)
         list(REMOVE_ITEM FCM_COPY ${LIB})
       endif()
     endif()
@@ -247,8 +287,11 @@ function(compile_units)
         endif()
       endif()
 
-      if (${TYPE} MATCHES EXECUTABLE OR ${TYPE} MATCHES TESTS)
+      if (${TYPE} MATCHES EXECUTABLE OR ${TYPE} MATCHES TESTS OR ${TYPE} MATCHES BENCHMARK)
         if(TYPE MATCHES TESTS AND NOT BUILD_TESTS)
+          continue()
+        endif()
+        if(TYPE MATCHES BENCHMARK AND NOT BUILD_BENCHMARKS)
           continue()
         endif()
         add_executable(
@@ -267,6 +310,11 @@ function(compile_units)
           string(APPEND X_TEST_PREFIX "::")
           list(APPEND X_DEPS gmock_main)
           gtest_discover_tests(${NAME} TEST_PREFIX ${X_TEST_PREFIX})
+        endif()
+        if (${TYPE} MATCHES BENCHMARK)
+          set(X_BENCHMARK_PREFIX ${TARGET_NAME})
+          string(APPEND X_BENCHMARK_PREFIX "::")
+          list(APPEND X_DEPS benchmark_main)
         endif()
       endif()
 
