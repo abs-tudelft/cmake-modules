@@ -38,8 +38,9 @@ function(add_compile_unit)
     OPT   # Mark unit as optional. Ignored for tests.
   )
   set(single
-    NAME  # Target name
-    TYPE  # Compile unit type: SHARED | OBJECT | EXECUTABLE | TESTS | INTERFACE | BENCHMARK
+    NAME      # Target name
+    TYPE      # Compile unit type: SHARED | OBJECT | EXECUTABLE | TESTS | INTERFACE | BENCHMARK
+    COMPONENT # Group name
   )
   set(multi
     SRCS  # List of sources
@@ -53,6 +54,10 @@ function(add_compile_unit)
   # Default behavior is OBJECT_LIBRARY
   if(NOT X_TYPE)
     set(X_TYPE OBJECT)
+  endif()
+
+  if(NOT X_COMPONENT)
+    set(X_COMPONENT "Unspecified")
   endif()
 
   # test shortcut
@@ -119,6 +124,7 @@ function(add_compile_unit)
   # single
   set_property(GLOBAL PROPERTY FCM_${X_NAME}_NAME ${X_NAME})
   set_property(GLOBAL PROPERTY FCM_${X_NAME}_TYPE ${X_TYPE})
+  set_property(GLOBAL PROPERTY FCM_${X_NAME}_COMPONENT ${X_COMPONENT})
   # multi
   set_property(GLOBAL PROPERTY FCM_${X_NAME}_SRCS ${X_SRCS})
   set_property(GLOBAL PROPERTY FCM_${X_NAME}_DEPS ${X_DEPS})
@@ -216,6 +222,7 @@ function(compile_units)
       # single
       get_property(NAME GLOBAL PROPERTY ${LIB}_NAME)
       get_property(TYPE GLOBAL PROPERTY ${LIB}_TYPE)
+      get_property(COMPONENT GLOBAL PROPERTY ${LIB}_COMPONENT)
       # multi
       get_property(SRCS GLOBAL PROPERTY ${LIB}_SRCS)
       get_property(PRPS GLOBAL PROPERTY ${LIB}_PRPS)
@@ -271,6 +278,7 @@ function(compile_units)
           install(
             DIRECTORY ${SRC_DIR}/include/
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            COMPONENT ${COMPONENT}
           )
         endif()
         if(${TYPE} MATCHES SHARED)
@@ -279,6 +287,7 @@ function(compile_units)
             TARGETS ${NAME}
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            COMPONENT ${COMPONENT}
           )
         endif()
         if(${TYPE} MATCHES OBJECT)
@@ -303,6 +312,7 @@ function(compile_units)
           install(
             TARGETS ${NAME}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            COMPONENT ${COMPONENT}
           )
         endif()
         if (${TYPE} MATCHES TESTS)
