@@ -1,6 +1,7 @@
 add_compile_unit(
   NAME example::app
   TYPE EXECUTABLE
+  COMPONENT bins
   SRCS
     src/main.cpp
   TSTS

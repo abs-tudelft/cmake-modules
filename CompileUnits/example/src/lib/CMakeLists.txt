@@ -6,6 +6,7 @@ add_subdirectory(interface)
 add_compile_unit(
   NAME example::lib
   TYPE SHARED
+  COMPONENT libs
   DEPS
     example::lib::a
     example::lib::b
