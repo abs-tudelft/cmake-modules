@@ -276,18 +276,18 @@ function(compile_units)
         endif()
         if(EXISTS ${SRC_DIR}/include/)
           install(
-            COMPONENT ${COMPONENT}
             DIRECTORY ${SRC_DIR}/include/
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            COMPONENT ${COMPONENT}
           )
         endif()
         if(${TYPE} MATCHES SHARED)
           # shared libraries are installed
           install(
             TARGETS ${NAME}
-            COMPONENT ${COMPONENT}
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            COMPONENT ${COMPONENT}
           )
         endif()
         if(${TYPE} MATCHES OBJECT)
@@ -311,8 +311,8 @@ function(compile_units)
         if (${TYPE} MATCHES EXECUTABLE)
           install(
             TARGETS ${NAME}
-            COMPONENT ${COMPONENT}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            COMPONENT ${COMPONENT}
           )
         endif()
         if (${TYPE} MATCHES TESTS)
