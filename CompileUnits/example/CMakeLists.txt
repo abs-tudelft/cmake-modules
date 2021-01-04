@@ -30,3 +30,5 @@ add_subdirectory(src)
 # Always call the `compile_units` function after adding all the compile units
 # with the `add_compile_unit` function.
 compile_units()
+
+include(CPack)

@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+
+jobs:
+  examples:
+    name: Examples
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        source:
+        - CompileUnits/example
+    steps:
+    - uses: actions/checkout@v2
+    - name: CMake
+      run: cmake ${{ matrix.source }}
+    - name: Build
+      run: make
+    - name: Test
+      run: make test
+    - name: CPack
+      run: make package
+    - name: Install
+      run: sudo make install
