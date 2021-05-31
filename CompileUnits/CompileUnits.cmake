@@ -20,7 +20,7 @@ option(BUILD_TESTS "Build tests" OFF)
 
 FetchContent_Declare(benchmark
   GIT_REPOSITORY  https://github.com/google/benchmark.git
-  GIT_TAG         master
+  GIT_TAG         main
 )
 FetchContent_GetProperties(benchmark)
 if(NOT benchmark_POPULATED)
